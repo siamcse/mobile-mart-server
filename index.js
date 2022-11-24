@@ -33,6 +33,7 @@ async function run() {
     try {
 
         const categoriesCollection = client.db('mobileMart').collection('categories');
+        const productsCollection = client.db('mobileMart').collection('products');
         const usersCollection = client.db('mobileMart').collection('users');
 
         app.get('/jwt', async (req, res) => {
@@ -46,7 +47,24 @@ async function run() {
             const query = {};
             const categories = await categoriesCollection.find(query).toArray();
             res.send(categories);
+        });
+
+        //products
+        app.get('/products/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { categoryId: id };
+            const product = await productsCollection.find(query).toArray();
+            res.send(product);
         })
+
+        //get admin
+        app.get('/users/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            res.send({ isAdmin: user?.role === 'admin' });
+        });
+        
 
         //save User
         app.post('/users', async (req, res) => {
