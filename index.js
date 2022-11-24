@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -16,6 +16,7 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 async function verifyJWT(req, res, next) {
     const authHeader = req.headers.authorization;
+    console.log(authHeader);
     if (!authHeader) {
         return res.status(401).send({ message: 'Unauthorized access' });
     }
@@ -37,10 +38,26 @@ async function run() {
         const usersCollection = client.db('mobileMart').collection('users');
 
         app.get('/jwt', async (req, res) => {
-            const user = req.body;
-            const token = jwt.sign(user, process.env.SECRET_ACCESS_TOKEN, { expiresIn: '24h' });
-            res.send({ token });
+            const email = req.query.email;
+            const query = { email };
+            console.log(query);
+            const user = await usersCollection.findOne(query);
+            if (user) {
+                const token = jwt.sign({ email }, process.env.SECRET_ACCESS_TOKEN, { expiresIn: '1h' });
+                return res.send({ token: token });
+            }
+            res.status(403).send({ message: 'Unauthorized access', token: '' });
         });
+
+        const verifyAdmin = async (req, res, next) => {
+            const decodedEmail = req.decoded.email;
+            const query = { email: decodedEmail };
+            const user = await usersCollection.findOne(query);
+            if (user.role !== 'admin') {
+                return res.status(403).send({ message: 'Forbidden access' });
+            }
+            next();
+        }
 
         //categories
         app.get('/categories', async (req, res) => {
@@ -65,18 +82,31 @@ async function run() {
             res.send({ isAdmin: user?.role === 'admin' });
         });
         //get seller
-        app.get('/users/admin/:email', async (req, res) => {
+        app.get('/users/seller/:email', async (req, res) => {
             const email = req.params.email;
             const query = { email: email };
             const user = await usersCollection.findOne(query);
-            res.send({ isAdmin: user?.role === 'admin' });
+            res.send({ isSeller: user?.role === 'Seller' });
         });
 
         //save User
         app.post('/users', async (req, res) => {
             const user = req.body;
-            console.log(user);
             const result = await usersCollection.insertOne(user);
+            res.send(result);
+        });
+
+        //make seller verified
+        app.put('/users/seller/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    verified: true
+                }
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options)
             res.send(result);
         })
 
