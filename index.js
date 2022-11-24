@@ -88,6 +88,13 @@ async function run() {
             const user = await usersCollection.findOne(query);
             res.send({ isSeller: user?.role === 'Seller' });
         });
+        //get all users by role
+        app.get('/users',async(req,res)=>{
+            const role = req.query.role;
+            const query = {role: role};
+            const result = await usersCollection.find(query).toArray();
+            res.send(result);
+        })
 
         //save User
         app.post('/users', async (req, res) => {
