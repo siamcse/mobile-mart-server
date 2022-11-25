@@ -93,6 +93,19 @@ async function run() {
             const result = await productsCollection.deleteOne(query);
             res.send(result);
         })
+        //advertise a product
+        app.put('/products/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    advertise: true
+                }
+            };
+            const result = await productsCollection.updateMany(filter, updateDoc, options);
+            res.send(result);
+        })
 
         //get admin
         app.get('/users/admin/:email', async (req, res) => {
