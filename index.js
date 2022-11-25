@@ -66,12 +66,32 @@ async function run() {
             res.send(categories);
         });
 
-        //products
+        //get products by id
         app.get('/products/:id', async (req, res) => {
             const id = req.params.id;
             const query = { categoryId: id };
             const product = await productsCollection.find(query).toArray();
             res.send(product);
+        })
+        //get products by email
+        app.get('/products', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            const products = await productsCollection.find(query).toArray();
+            res.send(products);
+        })
+        //save products
+        app.post('/products', async (req, res) => {
+            const product = req.body;
+            const result = await productsCollection.insertOne(product);
+            res.send(result);
+        })
+        //delete product
+        app.delete('/products/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = await productsCollection.deleteOne(query);
+            res.send(result);
         })
 
         //get admin
@@ -86,12 +106,12 @@ async function run() {
             const email = req.params.email;
             const query = { email: email };
             const user = await usersCollection.findOne(query);
-            res.send({ isSeller: user?.role === 'Seller' });
+            res.send({ isSeller: user?.role === 'Seller', seller: user });
         });
         //get all users by role
-        app.get('/users',async(req,res)=>{
+        app.get('/users', async (req, res) => {
             const role = req.query.role;
-            const query = {role: role};
+            const query = { role: role };
             const result = await usersCollection.find(query).toArray();
             res.send(result);
         })
@@ -106,6 +126,7 @@ async function run() {
         //make seller verified
         app.put('/users/seller/:id', async (req, res) => {
             const id = req.params.id;
+            console.log(id);
             const filter = { _id: ObjectId(id) };
             const options = { upsert: true };
             const updateDoc = {
@@ -114,6 +135,13 @@ async function run() {
                 }
             };
             const result = await usersCollection.updateOne(filter, updateDoc, options)
+            res.send(result);
+        });
+
+        app.delete('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await usersCollection.deleteOne(query);
             res.send(result);
         })
 
