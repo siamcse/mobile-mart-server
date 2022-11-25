@@ -80,6 +80,12 @@ async function run() {
             const products = await productsCollection.find(query).toArray();
             res.send(products);
         })
+        //advertise product
+        app.get('/adproducts',async(req,res)=>{
+            const query = {advertise: true};
+            const products = await productsCollection.find(query).toArray();
+            res.send(products);
+        })
         //save products
         app.post('/products', async (req, res) => {
             const product = req.body;
