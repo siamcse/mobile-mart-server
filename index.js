@@ -116,12 +116,38 @@ async function run() {
             res.send(products);
         });
 
-        //booking
+        //bookings
+        app.get('/bookings', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            const bookings = await bookingsCollection.find(query).toArray();
+            res.send(bookings);
+        });
+        //bookings get by id
+        app.get('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const booking = await bookingsCollection.findOne(query);
+            res.send(booking);
+        });
+
         app.post('/bookings', async (req, res) => {
             const booking = req.body;
             const query = {};
             const result = await bookingsCollection.insertOne(booking);
             res.send(result);
+        });
+        //bookings delete
+        app.delete('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await bookingsCollection.deleteOne(query);
+            res.send(result);
+        });
+
+        // payment 
+        app.get('/payment', async (req, res) => {
+
         })
 
         //get admin
