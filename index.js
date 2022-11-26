@@ -36,6 +36,7 @@ async function run() {
         const categoriesCollection = client.db('mobileMart').collection('categories');
         const productsCollection = client.db('mobileMart').collection('products');
         const usersCollection = client.db('mobileMart').collection('users');
+        const bookingsCollection = client.db('mobileMart').collection('bookings');
 
         app.get('/jwt', async (req, res) => {
             const email = req.query.email;
@@ -80,12 +81,7 @@ async function run() {
             const products = await productsCollection.find(query).toArray();
             res.send(products);
         })
-        //advertise product
-        app.get('/adproducts',async(req,res)=>{
-            const query = {advertise: true};
-            const products = await productsCollection.find(query).toArray();
-            res.send(products);
-        })
+
         //save products
         app.post('/products', async (req, res) => {
             const product = req.body;
@@ -110,6 +106,21 @@ async function run() {
                 }
             };
             const result = await productsCollection.updateMany(filter, updateDoc, options);
+            res.send(result);
+        });
+
+        //advertise product
+        app.get('/adproducts', async (req, res) => {
+            const query = { advertise: true };
+            const products = await productsCollection.find(query).toArray();
+            res.send(products);
+        });
+
+        //booking
+        app.post('/bookings', async (req, res) => {
+            const booking = req.body;
+            const query = {};
+            const result = await bookingsCollection.insertOne(booking);
             res.send(result);
         })
 
