@@ -5,6 +5,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 5000;
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // middleware
 app.use(cors());
@@ -37,6 +38,7 @@ async function run() {
         const productsCollection = client.db('mobileMart').collection('products');
         const usersCollection = client.db('mobileMart').collection('users');
         const bookingsCollection = client.db('mobileMart').collection('bookings');
+        const paymentsCollection = client.db('mobileMart').collection('payments');
 
         app.get('/jwt', async (req, res) => {
             const email = req.query.email;
@@ -145,9 +147,51 @@ async function run() {
             res.send(result);
         });
 
-        // payment 
-        app.get('/payment', async (req, res) => {
+        //stripe payment
+        app.post('/create-payment-intent', async (req, res) => {
+            const booking = req.body;
+            const price = booking.price;
+            const amount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                "payment_method_types": [
+                    "card"
+                ],
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
 
+        // payment 
+        app.post('/payments', async (req, res) => {
+            const payment = req.body;
+            const result = await paymentsCollection.insertOne(payment);
+            //update products
+            const productsId = payment.productsId;
+            const filterProducts = { _id: ObjectId(productsId) };
+            const updateProduct = {
+                $set: {
+                    isAvailable: false,
+                    advertise: false,
+                    paid: true,
+                    transationId: payment.transactionId
+                }
+            };
+            const updateProductResult = await productsCollection.updateOne(filterProducts, updateProduct);
+
+            //update booking
+            const filterBooking = { productsId: productsId };
+            const updateBooking = {
+                $set: {
+                    paid: true,
+                    transationId: payment.transactionId,
+
+                }
+            };
+            const updateBookingResult = await bookingsCollection.updateMany(filterBooking, updateBooking);
+            res.send(result);
         })
 
         //get admin
@@ -182,7 +226,6 @@ async function run() {
         //make seller verified
         app.put('/users/seller/:id', async (req, res) => {
             const id = req.params.id;
-            console.log(id);
             const filter = { _id: ObjectId(id) };
             const options = { upsert: true };
             const updateDoc = {
