@@ -38,6 +38,7 @@ async function run() {
         const productsCollection = client.db('mobileMart').collection('products');
         const usersCollection = client.db('mobileMart').collection('users');
         const bookingsCollection = client.db('mobileMart').collection('bookings');
+        const reportProductsCollection = client.db('mobileMart').collection('reportProducts');
         const paymentsCollection = client.db('mobileMart').collection('payments');
 
         app.get('/jwt', async (req, res) => {
@@ -69,7 +70,7 @@ async function run() {
             res.send(categories);
         });
 
-        //get products by id
+        //get products by category id
         app.get('/products/:id', async (req, res) => {
             const id = req.params.id;
             const query = { categoryId: id };
@@ -118,29 +119,52 @@ async function run() {
             res.send(products);
         });
 
+        //Report products 
+        app.get('/reportProducts', async (req, res) => {
+            const query = {};
+            const products = await reportProductsCollection.find(query).toArray();
+            res.send(products);
+        })
+        app.post('/reportProducts', async (req, res) => {
+            const product = req.body;
+            const query = { productId: product.productId };
+            const alreadyReported = await reportProductsCollection.find(query).toArray();
+            if (alreadyReported.length > 0) {
+                return res.send({ message: "Already Reported" });
+            }
+            const result = await reportProductsCollection.insertOne(product);
+            res.send({ message: 'Reported Successful', result });
+        });
+        app.delete('/reportProducts/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await reportProductsCollection.deleteOne(query);
+            res.send(result);
+
+        })
         //bookings
-        app.get('/bookings', async (req, res) => {
+        app.get('/bookings', verifyJWT, async (req, res) => {
             const email = req.query.email;
             const query = { email: email };
             const bookings = await bookingsCollection.find(query).toArray();
             res.send(bookings);
         });
         //bookings get by id
-        app.get('/bookings/:id', async (req, res) => {
+        app.get('/bookings/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const booking = await bookingsCollection.findOne(query);
             res.send(booking);
         });
 
-        app.post('/bookings', async (req, res) => {
+        app.post('/bookings', verifyJWT, async (req, res) => {
             const booking = req.body;
             const query = {};
             const result = await bookingsCollection.insertOne(booking);
             res.send(result);
         });
         //bookings delete
-        app.delete('/bookings/:id', async (req, res) => {
+        app.delete('/bookings/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await bookingsCollection.deleteOne(query);
@@ -219,6 +243,11 @@ async function run() {
         //save User
         app.post('/users', async (req, res) => {
             const user = req.body;
+            const filter = { email: user.email };
+            const alreadyUser = await usersCollection.find(filter).toArray();
+            if (alreadyUser) {
+                return res.send({ acknowledged: true });
+            }
             const result = await usersCollection.insertOne(user);
             res.send(result);
         });
