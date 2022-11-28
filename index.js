@@ -99,7 +99,7 @@ async function run() {
             res.send(result);
         })
         //advertise a product
-        app.put('/products/:id', async (req, res) => {
+        app.put('/products/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) };
             const options = { upsert: true };
@@ -245,7 +245,7 @@ async function run() {
             const user = req.body;
             const filter = { email: user.email };
             const alreadyUser = await usersCollection.find(filter).toArray();
-            if (alreadyUser) {
+            if (alreadyUser.length > 0) {
                 return res.send({ acknowledged: true });
             }
             const result = await usersCollection.insertOne(user);
